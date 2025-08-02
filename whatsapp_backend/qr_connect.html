@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Connect - LightBerry OS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #00ff00;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 600px;
+            width: 100%;
+            padding: 30px;
+            border: 2px solid #00ff00;
+            border-radius: 15px;
+            background: rgba(26, 26, 26, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 40px rgba(0, 255, 0, 0.1);
+        }
+        
+        h1 {
+            color: #00ff00;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 2rem;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+        
+        .qr-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+            display: none;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        #qrcode {
+            max-width: 280px;
+            height: auto;
+            border-radius: 10px;
+        }
+        
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(51, 51, 51, 0.8);
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .status.ready {
+            background: rgba(10, 90, 10, 0.8);
+            color: #00ff00;
+            border: 1px solid #00aa00;
+        }
+        
+        .status.error {
+            background: rgba(90, 10, 10, 0.8);
+            color: #ff6666;
+            border: 1px solid #aa0000;
+        }
+        
+        .status.connecting {
+            background: rgba(90, 90, 10, 0.8);
+            color: #ffff66;
+            border: 1px solid #aaaa00;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-item {
+            background: rgba(42, 42, 42, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+        
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00ff00;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #cccccc;
+            margin-top: 5px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 25px;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #00aa00, #00ff00);
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 0, 0.3);
+        }
+        
+        .btn.danger {
+            background: linear-gradient(45deg, #aa0000, #ff0000);
+            color: white;
+        }
+        
+        .btn.secondary {
+            background: linear-gradient(45deg, #555, #777);
+            color: white;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 255, 0, 0.3);
+            border-radius: 50%;
+            border-top-color: #00ff00;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .instructions {
+            text-align: left;
+            margin: 25px 0;
+            padding: 20px;
+            background: rgba(42, 42, 42, 0.8);
+            border-radius: 10px;
+            border-left: 4px solid #00ff00;
+        }
+        
+        .instructions h3 {
+            color: #00ff00;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+        
+        .error-popup {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(90, 10, 10, 0.95);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            border: 1px solid #ff6666;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            max-width: 300px;
+            display: none;
+        }
+        
+        .error-popup.show {
+            display: block;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 WhatsApp Connect (Stable)</h1>
+        <div class="status" id="status">
+            <div class="loading"></div>
+            Connecting...
+        </div>
+        
+        <div class="qr-container" id="qrContainer">
+            <img id="qrcode" alt="QR Code" />
+        </div>
+        
+        <div class="stats" id="stats" style="display: none;">
+            <div class="stat-item">
+                <div class="stat-number" id="contactsCount">0</div>
+                <div class="stat-label">Contacts</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="chatsCount">0</div>
+                <div class="stat-label">Chats</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="syncStatus">-</div>
+                <div class="stat-label">Sync Status</div>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h3>📱 Connection Steps:</h3>
+            <ol>
+                <li>Open WhatsApp on your phone</li>
+                <li>Go to <strong>Settings → Linked devices</strong></li>
+                <li>Tap <strong>"Link a device"</strong></li>
+                <li>Scan the QR code above</li>
+                <li>Wait for stable connection</li>
+            </ol>
+            
+            <p><strong>🔒 Enhanced Stability:</strong> Improved authentication handling and sync protection.</p>
+        </div>
+        
+        <div class="button-group">
+            <button class="btn" onclick="refreshStatus()">🔄 REFRESH</button>
+            <button class="btn" onclick="syncData()" id="syncBtn" style="display: none;">⚡ SYNCING...</button>
+            <button class="btn danger" onclick="resetAccount()" id="resetBtn" style="display: none;">🗑️ RESET</button>
+            <button class="btn secondary" onclick="window.close()">❌ CLOSE</button>
+        </div>
+    </div>
+
+    <div class="error-popup" id="errorPopup">
+        <div id="errorMessage"></div>
+    </div>
+
+    <script>
+        let pollInterval;
+        let isConnected = false;
+        let isSyncing = false;
+        
+        function showError(message) {
+            const errorPopup = document.getElementById('errorPopup');
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = message;
+            errorPopup.className = 'error-popup show';
+            
+            setTimeout(() => {
+                errorPopup.className = 'error-popup';
+            }, 5000);
+        }
+        
+        function updateStatus() {
+            fetch('/status')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Server response: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const statusEl = document.getElementById('status');
+                    const qrContainer = document.getElementById('qrContainer');
+                    const qrImg = document.getElementById('qrcode');
+                    const statsEl = document.getElementById('stats');
+                    const syncBtn = document.getElementById('syncBtn');
+                    const resetBtn = document.getElementById('resetBtn');
+                    
+                    // Update stats
+                    document.getElementById('contactsCount').textContent = data.contactsCount || 0;
+                    document.getElementById('chatsCount').textContent = data.chatsCount || 0;
+                    document.getElementById('syncStatus').textContent = 
+                        isSyncing ? 'Syncing...' : 
+                        data.lastSync ? 'Ready' : 'Pending';
+                    
+                    if (data.ready) {
+                        statusEl.innerHTML = '✅ WhatsApp connected and stable!';
+                        statusEl.className = 'status ready';
+                        qrContainer.style.display = 'none';
+                        statsEl.style.display = 'grid';
+                        syncBtn.style.display = 'inline-block';
+                        syncBtn.innerHTML = isSyncing ? '⚡ SYNCING...' : '⚡ SYNC DATA';
+                        resetBtn.style.display = 'inline-block';
+                        isConnected = true;
+                        
+                        if (isSyncing) {
+                            statusEl.innerHTML += '<br><small>🔄 Syncing data safely...</small>';
+                        }
+                    } else if (data.hasQR && data.qr) {
+                        statusEl.innerHTML = '<div class="loading"></div>📱 Scan QR code with your phone';
+                        statusEl.className = 'status connecting';
+                        qrContainer.style.display = 'block';
+                        statsEl.style.display = data.contactsCount > 0 ? 'grid' : 'none';
+                        syncBtn.style.display = 'none';
+                        resetBtn.style.display = 'inline-block';
+                        
+                        const qrDataURL = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodeURIComponent(data.qr);
+                        qrImg.src = qrDataURL;
+                        isConnected = false;
+                    } else {
+                        let statusMsg = '<div class="loading"></div>Connecting to WhatsApp...';
+                        if (data.status === 'AUTH_FAILED') {
+                            statusMsg = '🔑 Authentication failed - Generating new QR...';
+                        } else if (data.status === 'ERROR') {
+                            statusMsg = '❌ Connection failed - Please reset';
+                        }
+                        
+                        statusEl.innerHTML = statusMsg;
+                        statusEl.className = 'status connecting';
+                        qrContainer.style.display = 'none';
+                        statsEl.style.display = data.contactsCount > 0 ? 'grid' : 'none';
+                        syncBtn.style.display = 'none';
+                        resetBtn.style.display = 'inline-block';
+                        isConnected = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Status error:', error);
+                    const statusEl = document.getElementById('status');
+                    statusEl.innerHTML = '❌ Connection error - Check server';
+                    statusEl.className = 'status error';
+                    showError('Failed to connect to server: ' + error.message);
+                });
+        }
+        
+        function refreshStatus() {
+            updateStatus();
+        }
+        
+        function syncData() {
+            if (!isConnected || isSyncing) return;
+            
+            isSyncing = true;
+            const syncBtn = document.getElementById('syncBtn');
+            syncBtn.innerHTML = '<div class="loading"></div>SYNCING...';
+            syncBtn.disabled = true;
+            
+            fetch('/sync/all', { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Sync request failed: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        updateStatus();
+                        alert('⚡ Sync completed successfully!\n\nContacts: ' + data.contacts + '\nChats: ' + data.chats);
+                    } else {
+                        showError('Sync failed: ' + (data.error || 'Unknown error'));
+                        throw new Error(data.error || 'Sync failed');
+                    }
+                })
+                .catch(error => {
+                    console.error('Sync error:', error);
+                    showError('Sync error: ' + error.message);
+                })
+                .finally(() => {
+                    isSyncing = false;
+                    syncBtn.innerHTML = '⚡ SYNC DATA';
+                    syncBtn.disabled = false;
+                    updateStatus();
+                });
+        }
+        
+        function resetAccount() {
+            if (confirm('⚠️ This will delete all WhatsApp data and sessions.\n\nAre you sure?')) {
+                const resetBtn = document.getElementById('resetBtn');
+                const originalText = resetBtn.innerHTML;
+                resetBtn.innerHTML = '<div class="loading"></div>RESETTING...';
+                resetBtn.disabled = true;
+                
+                fetch('/account/reset', { 
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Reset request failed: ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            alert('✅ Account reset successfully!\n\nThe server will restart automatically.');
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 3000);
+                        } else {
+                            throw new Error(data.error || 'Reset failed');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Reset error:', error);
+                        showError('Reset error: ' + error.message);
+                        resetBtn.innerHTML = originalText;
+                        resetBtn.disabled = false;
+                    });
+            }
+        }
+        
+        // Start polling for updates
+        updateStatus();
+        pollInterval = setInterval(updateStatus, 3000);
+        
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+            }
+        });
+    </script>
+</body>
+</html>

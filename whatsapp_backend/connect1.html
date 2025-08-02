@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Connection - Enhanced</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #075e54, #128c7e);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: #25d366;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: white;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+
+        .subtitle {
+            margin-bottom: 30px;
+            opacity: 0.8;
+            font-size: 1.1em;
+        }
+
+        .version {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .connection-options {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .option-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid transparent;
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: white;
+            display: block;
+        }
+
+        .option-card:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #25d366;
+            transform: translateY(-2px);
+        }
+
+        .option-card h3 {
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        .option-card p {
+            opacity: 0.8;
+            font-size: 0.9em;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online { background: #25d366; }
+        .status-offline { background: #e74c3c; }
+        .status-connecting { background: #f39c12; animation: pulse 1.5s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .system-info {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 0.8em;
+            text-align: left;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .footer {
+            margin-top: 30px;
+            opacity: 0.6;
+            font-size: 0.8em;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+                margin: 20px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">📱</div>
+        <h1>WhatsApp Enhanced</h1>
+        <p class="subtitle">Optimized for Raspberry Pi Zero 2 W</p>
+        <div class="version">v1.3.0 Enhanced</div>
+
+        <div class="connection-options">
+            <a href="/connect/whatsapp" class="option-card">
+                <h3><span id="whatsapp-status" class="status-indicator status-connecting"></span>Connect WhatsApp</h3>
+                <p>Scan QR code to connect your WhatsApp account</p>
+            </a>
+
+            <a href="/connect/spotify" class="option-card">
+                <h3><span class="status-indicator status-offline"></span>Spotify Integration</h3>
+                <p>Connect your Spotify account for music control</p>
+            </a>
+
+            <a href="/connect/mail" class="option-card">
+                <h3><span class="status-indicator status-offline"></span>Email Configuration</h3>
+                <p>Set up email notifications and alerts</p>
+            </a>
+        </div>
+
+        <div class="system-info">
+            <div class="info-row">
+                <span>Backend Status:</span>
+                <span id="backend-status">Checking...</span>
+            </div>
+            <div class="info-row">
+                <span>Memory Usage:</span>
+                <span id="memory-usage">Loading...</span>
+            </div>
+            <div class="info-row">
+                <span>Uptime:</span>
+                <span id="uptime">Loading...</span>
+            </div>
+            <div class="info-row">
+                <span>Contacts:</span>
+                <span id="contacts-count">0</span>
+            </div>
+            <div class="info-row">
+                <span>Chats:</span>
+                <span id="chats-count">0</span>
+            </div>
+        </div>
+
+        <div class="footer">
+            Enhanced WhatsApp Messenger<br>
+            Optimized for low-resource devices
+        </div>
+    </div>
+
+    <script>
+        // Status checking and updates
+        async function updateStatus() {
+            try {
+                const response = await fetch('/status');
+                const status = await response.json();
+                
+                // Update WhatsApp status
+                const whatsappStatus = document.getElementById('whatsapp-status');
+                if (status.ready) {
+                    whatsappStatus.className = 'status-indicator status-online';
+                } else if (status.authenticated) {
+                    whatsappStatus.className = 'status-indicator status-connecting';
+                } else {
+                    whatsappStatus.className = 'status-indicator status-offline';
+                }
+
+                // Update system info
+                document.getElementById('backend-status').textContent = status.status;
+                document.getElementById('contacts-count').textContent = status.contactsCount || 0;
+                document.getElementById('chats-count').textContent = status.chatsCount || 0;
+                
+                if (status.system) {
+                    document.getElementById('memory-usage').textContent = 
+                        `${status.system.memory.heapUsed}MB / ${status.system.memory.heapTotal}MB`;
+                    document.getElementById('uptime').textContent = 
+                        `${Math.floor(status.system.uptime / 3600)}h ${Math.floor((status.system.uptime % 3600) / 60)}m`;
+                }
+
+            } catch (error) {
+                console.error('Error updating status:', error);
+                document.getElementById('backend-status').textContent = 'Connection Error';
+                document.getElementById('whatsapp-status').className = 'status-indicator status-offline';
+            }
+        }
+
+        // Update status immediately and then every 5 seconds
+        updateStatus();
+        setInterval(updateStatus, 5000);
+
+        // Add click animations
+        document.querySelectorAll('.option-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = 'translateY(-2px)';
+                }, 150);
+            });
+        });
+    </script>
+</body>
+</html>

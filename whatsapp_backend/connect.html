@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Menu Connect - Server</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f0f14;
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .main-container {
+            width: 400px;
+            height: 380px;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border: 2px solid #228B22;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(34, 139, 34, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(90deg, #228B22, #32CD32);
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .content {
+            padding: 15px;
+            height: calc(100% - 50px);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .menu-title {
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 25px;
+            color: #cccccc;
+            font-weight: 500;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .option {
+            background: linear-gradient(145deg, #2a2a3e, #1e1e32);
+            border: 2px solid #444;
+            border-radius: 10px;
+            padding: 12px 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .option:hover {
+            background: linear-gradient(145deg, #228B22, #32CD32);
+            border-color: #32CD32;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(34, 139, 34, 0.4);
+        }
+
+        .option.spotify:hover {
+            background: linear-gradient(145deg, #1db954, #1ed760);
+            border-color: #1ed760;
+        }
+
+        .option.mail:hover {
+            background: linear-gradient(145deg, #0078d4, #106ebe);
+            border-color: #106ebe;
+        }
+
+        .option-icon {
+            font-size: 28px;
+            width: 30px;
+            text-align: center;
+        }
+
+        .option-text {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .status-bar {
+            margin-top: auto;
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            padding-top: 10px;
+            border-top: 1px solid #333;
+        }
+
+        .connection-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-dot.online {
+            background: #228B22;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.qr {
+            background: #FFD700;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.offline {
+            background: #FF4500;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .decoration {
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, rgba(34, 139, 34, 0.1), transparent);
+            border-radius: 50%;
+        }
+
+        .decoration:nth-child(2) {
+            top: auto;
+            bottom: -30px;
+            left: -30px;
+            width: 60px;
+            height: 60px;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="decoration"></div>
+        <div class="decoration"></div>
+        
+        <div class="header">
+            🔗 Main Menu Connect
+        </div>
+        
+        <div class="content">
+            <div class="menu-title">Server Connection Options</div>
+            
+            <div class="options">
+                <a href="/connect/whatsapp" class="option">
+                    <div class="option-icon">📱</div>
+                    <div class="option-text">WhatsApp Server</div>
+                </a>                
+                <a href="http://192.168.1.152:3002" class="option spotify" target="_blank">
+                    <div class="option-icon">🎵</div>
+                    <div class="option-text">Spotify Server</div>
+                </a>
+                
+                <a href="/connect/mail" class="option mail">
+                    <div class="option-icon">📧</div>
+                    <div class="option-text">Mail Configuration</div>
+                </a>
+            </div>
+            
+            <div class="status-bar">
+                <div class="connection-status">
+                    <div id="status-dot" class="status-dot offline"></div>
+                    <span id="status-text">Server Online • Port 3333</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Actualizar estado de conexión cada 5 segundos
+        async function updateStatus() {
+            try {
+                const response = await fetch('/status');
+                const data = await response.json();
+
+                const dot = document.getElementById('status-dot');
+                const text = document.getElementById('status-text');
+
+                if (data.ready) {
+                    dot.className = 'status-dot online';
+                    text.textContent = 'WhatsApp: Connected • Port 3333';
+                } else if (data.hasQR) {
+                    dot.className = 'status-dot qr';
+                    text.textContent = 'WhatsApp: Scan QR • Port 3333';
+                } else {
+                    dot.className = 'status-dot offline';
+                    text.textContent = 'WhatsApp: Offline • Port 3333';
+                }
+            } catch (err) {
+                document.getElementById('status-dot').className = 'status-dot offline';
+                document.getElementById('status-text').textContent = 'Server: Error • Port 3333';
+            }
+        }
+
+        // Actualizar cada 5 segundos
+        updateStatus();
+        setInterval(updateStatus, 5000);
+    </script>
+</body>
+</html>
